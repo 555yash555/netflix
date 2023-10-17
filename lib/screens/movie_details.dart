@@ -5,8 +5,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_netflix/cubit/movie_details_tab_cubit.dart';
 import 'package:flutter_netflix/widgets/episode_box.dart';
 import 'package:flutter_netflix/widgets/netflix_dropdown.dart';
-import 'package:flutter_netflix/widgets/poster_image.dart';
+
 import 'package:lucide_icons/lucide_icons.dart';
+import 'package:video_player/video_player.dart';
 
 import '../bloc/netflix_bloc.dart';
 import '../model/movie.dart';
@@ -83,36 +84,7 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen>
         ),
         SliverList(
             delegate: SliverChildListDelegate.fixed([
-          Stack(
-            children: [
-              PosterImage(
-                movie: movie,
-                backdrop: true,
-                borderRadius: BorderRadius.zero,
-              ),
-              Positioned(
-                  bottom: 12.0,
-                  left: 6.0,
-                  child: SizedBox(
-                    height: 32.0,
-                    child: TextButton(
-                        style: TextButton.styleFrom(
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(2.0)),
-                            padding:
-                                const EdgeInsets.symmetric(horizontal: 16.0),
-                            foregroundColor: Colors.white,
-                            backgroundColor: Colors.black.withOpacity(.3)),
-                        onPressed: () {},
-                        child: const Text('Preview')),
-                  )),
-              Positioned(
-                  bottom: 6.0,
-                  right: 6.0,
-                  child: IconButton(
-                      onPressed: () {}, icon: const Icon(LucideIcons.volumeX)))
-            ],
-          ),
+          const BumbleBeeRemoteVideo(),
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: Text(
@@ -210,9 +182,9 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen>
               ],
             ),
           ),
-          Row(
+          const Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: const [
+            children: [
               NewAndHotTileAction(
                 icon: LucideIcons.plus,
                 label: 'My List',
@@ -230,32 +202,6 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen>
                 label: 'Download Season 1',
               )
             ],
-          ),
-          const Text(
-            'Fast Laughs',
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.0),
-          ),
-          SizedBox(
-            height: 180.0,
-            child: Builder(builder: (context) {
-              final movies =
-                  context.watch<TrendingTvShowListWeeklyBloc>().state;
-
-              if (movies is TrendingTvShowLisWeekly) {
-                return ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: movies.list.length,
-                    itemBuilder: (context, index) {
-                      final movie = movies.list[index];
-                      return MovieBox(
-                        key: ValueKey(movie.id),
-                        movie: movie,
-                        laughs: 100,
-                      );
-                    });
-              }
-              return Container();
-            }),
           ),
           const Divider(
             height: 1.0,
@@ -358,7 +304,7 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen>
       },
     );
 
-    Overlay.of(context, rootOverlay: true)?.insert(overlay);
+    Overlay.of(context, rootOverlay: true).insert(overlay);
   }
 
   Widget _seasonDropdown(Movie movie, int seasonNumber) {
@@ -390,6 +336,181 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen>
         const SizedBox(
           height: 8.0,
         )
+      ],
+    );
+  }
+}
+
+class BumbleBeeRemoteVideo extends StatefulWidget {
+  const BumbleBeeRemoteVideo({super.key});
+
+  @override
+  BumbleBeeRemoteVideoState createState() => BumbleBeeRemoteVideoState();
+}
+
+class BumbleBeeRemoteVideoState extends State<BumbleBeeRemoteVideo> {
+  late VideoPlayerController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = VideoPlayerController.networkUrl(
+      Uri.parse(
+          'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4'),
+      videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
+    );
+
+    _controller.addListener(() {
+      setState(() {});
+    });
+    _controller.setLooping(true);
+
+    _controller.initialize();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      child: Column(
+        children: <Widget>[
+          SizedBox(
+            width: double.infinity,
+            child: AspectRatio(
+              aspectRatio: 16 / 9,
+              child: Stack(
+                alignment: Alignment.bottomCenter,
+                children: <Widget>[
+                  VideoPlayer(_controller),
+                  ClosedCaption(text: _controller.value.caption.text),
+                  _ControlsOverlay(controller: _controller),
+                  VideoProgressIndicator(_controller, allowScrubbing: true),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ControlsOverlay extends StatelessWidget {
+  const _ControlsOverlay({required this.controller});
+
+  static const List<Duration> _exampleCaptionOffsets = <Duration>[
+    Duration(seconds: -10),
+    Duration(seconds: -3),
+    Duration(seconds: -1, milliseconds: -500),
+    Duration(milliseconds: -250),
+    Duration.zero,
+    Duration(milliseconds: 250),
+    Duration(seconds: 1, milliseconds: 500),
+    Duration(seconds: 3),
+    Duration(seconds: 10),
+  ];
+  static const List<double> _examplePlaybackRates = <double>[
+    0.25,
+    0.5,
+    1.0,
+    1.5,
+    2.0,
+    3.0,
+    5.0,
+    10.0,
+  ];
+
+  final VideoPlayerController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: <Widget>[
+        AnimatedSwitcher(
+          duration: const Duration(milliseconds: 50),
+          reverseDuration: const Duration(milliseconds: 200),
+          child: controller.value.isPlaying
+              ? const SizedBox.shrink()
+              : Container(
+                  color: Colors.black26,
+                  child: const Center(
+                    child: Icon(
+                      Icons.play_arrow,
+                      color: Colors.white,
+                      size: 100.0,
+                      semanticLabel: 'Play',
+                    ),
+                  ),
+                ),
+        ),
+        GestureDetector(
+          onTap: () {
+            controller.value.isPlaying ? controller.pause() : controller.play();
+          },
+        ),
+        Align(
+          alignment: Alignment.topLeft,
+          child: PopupMenuButton<Duration>(
+            initialValue: controller.value.captionOffset,
+            tooltip: 'Caption Offset',
+            onSelected: (Duration delay) {
+              controller.setCaptionOffset(delay);
+            },
+            itemBuilder: (BuildContext context) {
+              return <PopupMenuItem<Duration>>[
+                for (final Duration offsetDuration in _exampleCaptionOffsets)
+                  PopupMenuItem<Duration>(
+                    value: offsetDuration,
+                    child: Text('${offsetDuration.inMilliseconds}ms'),
+                  )
+              ];
+            },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                // Using less vertical padding as the text is also longer
+                // horizontally, so it feels like it would need more spacing
+                // horizontally (matching the aspect ratio of the video).
+                vertical: 12,
+                horizontal: 16,
+              ),
+              child: Text('${controller.value.captionOffset.inMilliseconds}ms'),
+            ),
+          ),
+        ),
+        Align(
+          alignment: Alignment.topRight,
+          child: PopupMenuButton<double>(
+            initialValue: controller.value.playbackSpeed,
+            tooltip: 'Playback speed',
+            onSelected: (double speed) {
+              controller.setPlaybackSpeed(speed);
+            },
+            itemBuilder: (BuildContext context) {
+              return <PopupMenuItem<double>>[
+                for (final double speed in _examplePlaybackRates)
+                  PopupMenuItem<double>(
+                    value: speed,
+                    child: Text('${speed}x'),
+                  )
+              ];
+            },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                // Using less vertical padding as the text is also longer
+                // horizontally, so it feels like it would need more spacing
+                // horizontally (matching the aspect ratio of the video).
+                vertical: 12,
+                horizontal: 16,
+              ),
+              child: Text('${controller.value.playbackSpeed}x'),
+            ),
+          ),
+        ),
       ],
     );
   }

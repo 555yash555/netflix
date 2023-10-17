@@ -19,6 +19,28 @@ class Movie {
   final int? episodes;
   final int? seasons;
   final bool details;
+  Movie({
+    required this.id,
+    required this.name,
+    required this.overview,
+    this.posterPath,
+    required this.originalName,
+    required this.originalLanguage,
+    required this.type,
+    required this.genreIds,
+    required this.popularity,
+    this.releaseDate,
+    required this.voteAverage,
+    required this.voteCount,
+    required this.originCountry,
+    this.backdropPath,
+    required this.adult,
+    required this.video,
+    this.runtime,
+    this.episodes,
+    this.seasons,
+    this.details = false,
+  });
 
   Movie.fromJson(Map<String, dynamic> json, {medialType, this.details = false})
       : id = json['id'],

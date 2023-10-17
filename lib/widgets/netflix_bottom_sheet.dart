@@ -33,8 +33,8 @@ class NetflixBottomSheet extends StatelessWidget {
           0.65,
           1.0
         ]),
-    child: Row(
-      children: const [
+    child: const Row(
+      children: [
         Text(
           '2022',
           style: TextStyle(color: Colors.grey, fontSize: 14.0),
@@ -189,9 +189,9 @@ class NetflixBottomSheet extends StatelessWidget {
                     )
                   ],
                 ),
-                Row(
+                const Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: const [
+                  children: [
                     BottomSheetButton(
                       icon: Icons.play_arrow,
                       label: 'Play',
